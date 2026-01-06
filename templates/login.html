@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - 365存錢計畫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #f0f2f5; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .auth-card { background: #fff; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        .logo i { font-size: 45px; color: #2ecc71; margin-bottom: 10px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        .btn { width: 100%; padding: 14px; background: #2ecc71; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .flash-msg { background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; border: 1px solid #fecaca; }
+        .reg-link { margin-top: 20px; font-size: 14px; }
+        .reg-link a { color: #2ecc71; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="logo"><i class="fa-solid fa-piggy-bank"></i></div>
+        <h2 style="margin-bottom:20px;">歡迎回來</h2>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}{% for message in messages %}<div class="flash-msg">{{ message }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <form action="/login" method="post">
+            <input type="text" name="username" placeholder="請輸入帳號" required>
+            <input type="password" name="password" placeholder="請輸入密碼" required>
+            <button type="submit" class="btn">立即登入</button>
+        </form>
+        <div class="reg-link">還沒加入？ <a href="/register">立即註冊</a></div>
+    </div>
+</body>
+</html>

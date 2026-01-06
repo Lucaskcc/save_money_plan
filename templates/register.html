@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>註冊 - 365天計畫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2ecc71; --bg: #f0f2f5; }
+        body { background: var(--bg); font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .auth-card { background: #fff; padding: 25px; border-radius: 20px; width: 90%; max-width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .logo-area { text-align: center; margin-bottom: 15px; color: var(--primary); }
+        .flash-msg { background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; text-align: center; border: 1px solid #fecaca; }
+        .tabs { display: flex; background: #eee; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+        .tabs button { flex: 1; border: none; padding: 10px; background: none; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .tabs button.active { background: #fff; color: var(--primary); font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .input-group { margin-bottom: 12px; }
+        label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; font-weight: bold; }
+        input, select { width: 100%; padding: 11px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
+        .btn { width: 100%; padding: 14px; background: var(--primary); color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
+        .preview { background: #f0fdf4; border: 1px dashed var(--primary); padding: 10px; text-align: center; border-radius: 10px; margin: 10px 0; font-size: 14px; color: #166534; }
+        .back-link { text-align: center; margin-top: 15px; font-size: 13px; }
+        .back-link a { color: var(--primary); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="logo-area"><i class="fa-solid fa-piggy-bank fa-3x"></i><h3 style="margin:5px 0; color:#333;">建立存錢帳號</h3></div>
+        
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}{% for message in messages %}<div class="flash-msg">{{ message }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <div class="tabs">
+            <button id="t1" class="active" onclick="sw('new')">創立新計畫</button>
+            <button id="t2" onclick="sw('join')">加入群組</button>
+        </div>
+
+        <form action="/register" method="post">
+            <div class="input-group"><label>帳號名稱</label><input type="text" name="username" required placeholder="登入用帳號"></div>
+            <div class="input-group"><label>密碼</label><input type="password" name="password" required placeholder="登入用密碼"></div>
+            
+            <div id="box-new">
+                <div class="input-group"><label>計畫名稱</label><input type="text" name="group_name" id="gn" placeholder="例如：我的2026計畫"></div>
+            </div>
+            <div id="box-join" style="display:none">
+                <div class="input-group"><label>邀請碼</label><input type="text" name="join_uuid" id="ju" placeholder="請輸入 8 位邀請碼"></div>
+            </div>
+
+            <div class="input-group">
+                <label>選擇存錢倍率</label>
+                <select name="multiplier" id="ms" onchange="c()">
+                    <option value="1">1倍 (目標 $66,795)</option>
+                    <option value="2">2倍 (目標 $133,590)</option>
+                    <option value="5">5倍 (目標 $333,975)</option>
+                    <option value="custom">自訂倍率</option>
+                </select>
+            </div>
+            <div id="box-c" style="display:none; margin-bottom:12px;">
+                <input type="number" name="custom_multiplier" id="cm" oninput="c()" placeholder="請輸入倍數 (例如: 10)">
+            </div>
+
+            <div class="preview">個人存錢總目標：<strong id="tg">$66,795</strong></div>
+            
+            <button type="submit" class="btn">確認註冊</button>
+        </form>
+        <div class="back-link">已有帳號？ <a href="/login">立即登入</a></div>
+    </div>
+
+    <script>
+        function sw(m){
+            document.getElementById('box-new').style.display = m=='new'?'block':'none';
+            document.getElementById('box-join').style.display = m=='join'?'block':'none';
+            document.getElementById('t1').className = m=='new'?'active':'';
+            document.getElementById('t2').className = m=='join'?'active':'';
+            document.getElementById('gn').required = m=='new'; 
+            document.getElementById('ju').required = m=='join';
+        }
+        function c(){
+            let s = document.getElementById('ms');
+            let m = s.value == 'custom' ? (document.getElementById('cm').value || 0) : s.value;
+            document.getElementById('box-c').style.display = s.value=='custom'?'block':'none';
+            document.getElementById('tg').innerText = '$' + (66795 * m).toLocaleString();
+        }
+    </script>
+</body>
+</html>
