@@ -7,7 +7,7 @@ from sqlalchemy import inspect, text
 
 app = Flask(__name__)
 
-# 安全金鑰：優先從 Render 環境變數讀取
+# 安全金鑰：優先從環境變數讀取
 app.secret_key = os.environ.get('SECRET_KEY', 'save_money_safe_final_2026')
 
 # --- 資料庫連線設定 (自動切換 PostgreSQL/SQLite) ---
@@ -62,20 +62,68 @@ def init_db():
 
 init_db()
 
-# --- 路由與邏輯 ---
+# --- 核心功能路由 ---
 
 @app.route('/')
 def index():
     if 'user_id' not in session: return redirect(url_for('login'))
     curr_user = User.query.get(session['user_id'])
     if not curr_user: return redirect(url_for('logout'))
+    
     group = Group.query.filter_by(group_uuid=curr_user.group_uuid).first()
     my_records = SavingRecord.query.filter_by(user_id=curr_user.id).all()
-    saved_days = {r.day_number: {'id': r.id, 'amount': r.amount, 'note': (r.note or "").replace("'", "\\'"), 'date': r.save_date or "", 'photo': r.photo or ""} for r in my_records}
+    
+    saved_days = {r.day_number: {
+        'id': r.id, 'amount': r.amount, 'note': (r.note or "").replace("'", "\\'"), 
+        'date': r.save_date or "", 'photo': r.photo or ""
+    } for r in my_records}
+    
     my_current = sum(r.amount for r in my_records)
     my_target = 66795 * curr_user.multiplier
     my_pct = round((my_current / my_target * 100), 1) if my_target > 0 else 0
-    return render_template('index.html', user=curr_user, group=group, current=my_current, target=my_target, my_pct=my_pct, saved_days=saved_days, today=datetime.now().strftime('%Y-%m-%d'))
+    
+    return render_template('index.html', user=curr_user, group=group, current=my_current, 
+                           target=my_target, my_pct=my_pct, saved_days=saved_days, 
+                           today=datetime.now().strftime('%Y-%m-%d'))
+
+# --- 設定頁面功能修復 ---
+
+@app.route('/update_password', methods=['POST'])
+def update_password():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    old_pwd = request.form.get('old_password')
+    new_pwd = request.form.get('new_password')
+    
+    if check_password_hash(user.password, old_pwd):
+        user.password = generate_password_hash(new_pwd, method='pbkdf2:sha256')
+        db.session.commit()
+        flash('密碼修改成功！')
+    else:
+        flash('舊密碼錯誤。')
+    return redirect(url_for('index'))
+
+@app.route('/delete_account', methods=['POST'])
+def delete_account():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    # 級聯刪除紀錄
+    SavingRecord.query.filter_by(user_id=user.id).delete()
+    db.session.delete(user)
+    db.session.commit()
+    session.clear()
+    flash('帳號已永久註銷。')
+    return redirect(url_for('login'))
+
+@app.route('/reset_all_records')
+def reset_all_records():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    SavingRecord.query.filter_by(user_id=session['user_id']).delete()
+    db.session.commit()
+    flash('紀錄已全部清空。')
+    return redirect(url_for('index'))
+
+# --- 註冊與登入邏輯修正 ---
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -87,7 +135,7 @@ def register():
         pwd = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
         juuid = request.form.get('join_uuid', '').strip()
         
-        # 修正：處理倍率邏輯
+        # 倍率處理
         m_type = request.form.get('multiplier')
         m = int(request.form.get('custom_multiplier') or 1) if m_type == 'custom' else int(m_type or 1)
         
@@ -96,13 +144,13 @@ def register():
             if not g: flash('邀請碼無效'); return redirect(url_for('register'))
             new_u = User(username=uname, password=pwd, group_uuid=juuid, multiplier=m)
         else:
-            # 修正：優先抓取自訂計畫名稱
             g_name = request.form.get('group_name', '').strip() or f'{uname}的計畫'
             new_uuid = str(uuid.uuid4())[:8]
             db.session.add(Group(group_uuid=new_uuid, name=g_name))
             new_u = User(username=uname, password=pwd, group_uuid=new_uuid, multiplier=m)
         
-        db.session.add(new_u); db.session.commit()
+        db.session.add(new_u)
+        db.session.commit()
         flash('註冊成功，請登入！')
         return redirect(url_for('login'))
     return render_template('register.html')
@@ -117,45 +165,49 @@ def login():
         flash('帳號或密碼錯誤')
     return render_template('login.html')
 
+# --- 存錢紀錄操作 ---
+
 @app.route('/save', methods=['POST'])
 def save():
     user = User.query.get(session['user_id'])
     f = request.files.get('photo_file')
     fname = f"{uuid.uuid4().hex}.{f.filename.rsplit('.', 1)[1].lower()}" if f and f.filename != '' else None
     if fname: f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
-    new_rec = SavingRecord(user_id=user.id, day_number=int(request.form['day_number']), amount=int(request.form['day_number']) * user.multiplier, note=request.form.get('note'), save_date=request.form.get('save_date'), photo=fname)
-    db.session.add(new_rec); db.session.commit()
-    return redirect(url_for('index'))
-
-@app.route('/update_profile', methods=['POST'])
-def update_profile():
-    user = User.query.get(session['user_id'])
-    new_m = int(request.form.get('multiplier', 1))
-    if user.multiplier != new_m:
-        SavingRecord.query.filter_by(user_id=user.id).delete()
-        flash(f'倍率變更，紀錄已清空重置。')
-    user.multiplier = new_m
+    
+    new_rec = SavingRecord(user_id=user.id, day_number=int(request.form['day_number']), 
+                           amount=int(request.form['day_number']) * user.multiplier, 
+                           note=request.form.get('note'), save_date=request.form.get('save_date'), photo=fname)
+    db.session.add(new_rec)
     db.session.commit()
     return redirect(url_for('index'))
 
-@app.route('/delete_account', methods=['POST'])
-def delete_account():
-    user = User.query.get(session.get('user_id'))
-    if user:
-        SavingRecord.query.filter_by(user_id=user.id).delete()
-        db.session.delete(user)
-        db.session.commit(); session.clear(); flash('帳號已刪除。')
-    return redirect(url_for('login'))
-
-@app.route('/logout')
-def logout(): session.clear(); return redirect(url_for('login'))
+@app.route('/update', methods=['POST'])
+def update():
+    record = SavingRecord.query.get(request.form.get('record_id'))
+    if record and record.user_id == session.get('user_id'):
+        record.note = request.form.get('note')
+        record.save_date = request.form.get('save_date')
+        f = request.files.get('photo_file')
+        if f and f.filename != '':
+            fname = f"{uuid.uuid4().hex}.{f.filename.rsplit('.', 1)[1].lower()}"
+            f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+            record.photo = fname
+        db.session.commit()
+    return redirect(url_for('index'))
 
 @app.route('/quick_update_name', methods=['POST'])
 def quick_update_name():
     user = User.query.get(session.get('user_id'))
     g = Group.query.filter_by(group_uuid=user.group_uuid).first()
-    if g: g.name = request.form.get('new_group_name'); db.session.commit()
+    if g:
+        g.name = request.form.get('new_group_name')
+        db.session.commit()
     return redirect(url_for('index'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
