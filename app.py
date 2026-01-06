@@ -15,7 +15,6 @@ if db_url and db_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///savings_v21.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024 
 
 db = SQLAlchemy(app)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -46,7 +45,7 @@ class SavingRecord(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- 路由與邏輯 ---
+# --- 核心功能 ---
 @app.route('/')
 def index():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -60,48 +59,44 @@ def index():
     my_pct = round((my_current / my_target * 100), 1) if my_target > 0 else 0
     return render_template('index.html', user=curr_user, group=group, current=my_current, target=my_target, my_pct=my_pct, saved_days=saved_days, today=datetime.now().strftime('%Y-%m-%d'))
 
-@app.route('/update_profile', methods=['POST'])
-def update_profile():
-    user = User.query.get(session['user_id'])
-    new_m = int(request.form.get('multiplier', 1))
-    if user.multiplier != new_m:
-        SavingRecord.query.filter_by(user_id=user.id).delete()
-        flash('倍率已變更，紀錄已清空重置。')
-    user.multiplier = new_m
-    db.session.commit()
-    return redirect(url_for('index'))
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        uname = request.form['username'].strip()
+        if User.query.filter_by(username=uname).first():
+            flash('此帳號已存在'); return redirect(url_for('register'))
+        
+        pwd = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
+        juuid = request.form.get('join_uuid', '').strip()
+        
+        # 修正自訂倍率邏輯
+        m_type = request.form.get('multiplier')
+        m = int(request.form.get('custom_multiplier') or 1) if m_type == 'custom' else int(m_type or 1)
+        
+        if juuid:
+            g = Group.query.filter_by(group_uuid=juuid).first()
+            if not g: flash('邀請碼無效'); return redirect(url_for('register'))
+            new_u = User(username=uname, password=pwd, group_uuid=juuid, multiplier=m)
+        else:
+            # 【關鍵修正】優先讀取註冊表單填寫的計畫名稱
+            g_name = request.form.get('group_name', '').strip() or f'{uname}的計畫'
+            new_uuid = str(uuid.uuid4())[:8]
+            db.session.add(Group(group_uuid=new_uuid, name=g_name))
+            new_u = User(username=uname, password=pwd, group_uuid=new_uuid, multiplier=m)
+            
+        db.session.add(new_u); db.session.commit()
+        flash('註冊成功，請登入！'); return redirect(url_for('login'))
+    return render_template('register.html')
 
-@app.route('/update_password', methods=['POST'])
-def update_password():
-    user = User.query.get(session['user_id'])
-    if check_password_hash(user.password, request.form.get('old_password')):
-        user.password = generate_password_hash(request.form.get('new_password'), method='pbkdf2:sha256')
-        db.session.commit(); flash('密碼修改成功！')
-    else: flash('舊密碼錯誤。')
-    return redirect(url_for('index'))
-
-@app.route('/delete_account', methods=['POST'])
-def delete_account():
-    user = User.query.get(session.get('user_id'))
-    if user:
-        SavingRecord.query.filter_by(user_id=user.id).delete()
-        db.session.delete(user); db.session.commit(); session.clear(); flash('帳號已永久刪除。')
-    return redirect(url_for('login'))
-
-@app.route('/reset_all_records')
-def reset_all_records():
-    SavingRecord.query.filter_by(user_id=session.get('user_id')).delete()
-    db.session.commit(); flash('紀錄已全部清空。')
-    return redirect(url_for('index'))
-
-@app.route('/quick_update_name', methods=['POST'])
-def quick_update_name():
-    user = User.query.get(session.get('user_id'))
-    g = Group.query.filter_by(group_uuid=user.group_uuid).first()
-    if g:
-        g.name = request.form.get('new_group_name')
-        db.session.commit()
-    return redirect(url_for('index'))
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        u = User.query.filter_by(username=request.form['username']).first()
+        if u and check_password_hash(u.password, request.form['password']):
+            session['user_id'] = u.id
+            return redirect(url_for('index'))
+        flash('帳號或密碼錯誤')
+    return render_template('login.html')
 
 @app.route('/save', methods=['POST'])
 def save():
@@ -125,34 +120,35 @@ def update():
         db.session.commit()
     return redirect(url_for('index'))
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        u = User.query.filter_by(username=request.form['username']).first()
-        if u and check_password_hash(u.password, request.form['password']):
-            session['user_id'] = u.id; return redirect(url_for('index'))
-        flash('帳號或密碼錯誤')
-    return render_template('login.html')
+@app.route('/update_password', methods=['POST'])
+def update_password():
+    user = User.query.get(session['user_id'])
+    if check_password_hash(user.password, request.form.get('old_password')):
+        user.password = generate_password_hash(request.form.get('new_password'), method='pbkdf2:sha256')
+        db.session.commit(); flash('密碼修改成功！')
+    else: flash('舊密碼錯誤。')
+    return redirect(url_for('index'))
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        uname = request.form['username'].strip()
-        if User.query.filter_by(username=uname).first():
-            flash('此帳號已存在'); return redirect(url_for('register'))
-        pwd = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
-        juuid = request.form.get('join_uuid', '').strip()
-        m = int(request.form.get('multiplier', 1))
-        if juuid:
-            g = Group.query.filter_by(group_uuid=juuid).first()
-            if not g: flash('邀請碼無效'); return redirect(url_for('register'))
-            new_u = User(username=uname, password=pwd, group_uuid=juuid, multiplier=m)
-        else:
-            new_uuid = str(uuid.uuid4())[:8]
-            db.session.add(Group(group_uuid=new_uuid, name=f'{uname}的計畫'))
-            new_u = User(username=uname, password=pwd, group_uuid=new_uuid, multiplier=m)
-        db.session.add(new_u); db.session.commit(); return redirect(url_for('login'))
-    return render_template('register.html')
+@app.route('/reset_all_records')
+def reset_all_records():
+    SavingRecord.query.filter_by(user_id=session.get('user_id')).delete()
+    db.session.commit(); flash('紀錄已全部清空。'); return redirect(url_for('index'))
+
+@app.route('/delete_account', methods=['POST'])
+def delete_account():
+    user = User.query.get(session.get('user_id'))
+    SavingRecord.query.filter_by(user_id=user.id).delete()
+    db.session.delete(user); db.session.commit(); session.clear(); flash('帳號已永久註銷。')
+    return redirect(url_for('login'))
+
+@app.route('/quick_update_name', methods=['POST'])
+def quick_update_name():
+    user = User.query.get(session.get('user_id'))
+    g = Group.query.filter_by(group_uuid=user.group_uuid).first()
+    if g:
+        g.name = request.form.get('new_group_name')
+        db.session.commit()
+    return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login'))

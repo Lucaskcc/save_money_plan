@@ -11,107 +11,114 @@
         .container { max-width: 500px; margin: 0 auto; padding: 15px; }
         .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
         .user-pill { cursor:pointer; background:#fff; padding:6px 14px; border-radius:20px; border:1px solid #ddd; font-size:12px; font-weight: bold; }
-        .main-header { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 15px 0 5px; }
-        .invite-box { text-align: center; margin-bottom: 20px; background: #fff; padding: 8px; border-radius: 12px; border: 1px dashed var(--primary); cursor: pointer; }
-        .card { background: #fff; border-radius: 15px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .p-bar { background: #eee; height: 12px; border-radius: 6px; overflow: hidden; margin: 12px 0; }
-        .fill { height: 100%; background: var(--primary); transition: width 0.6s ease; }
-        .money-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .day-box { background: #fff; border-radius: 12px; padding: 12px 0; text-align: center; cursor: pointer; border: 1px solid #eee; position: relative; }
-        .day-box.done { background: #e8f5e9; border-color: var(--primary); color: var(--primary); }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; padding: 15px; }
-        .modal-body { background: #fff; padding: 20px; border-radius: 20px; width: 100%; max-width: 380px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; margin-top: 5px; }
-        .btn-go { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .danger-zone { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #eee; text-align: center; }
+        
+        /* 標題與邀請碼 */
+        .main-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 15px; }
+        .invite-box { text-align: center; margin-bottom: 20px; font-size: 11px; color: var(--gray); cursor: pointer; }
+        .invite-code { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: bold; color: #475569; }
+
+        /* 進度條樣式：回歸上一版質感 */
+        .stats-card { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .progress-bar-bg { background: #edf2f7; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        .progress-bar-fill { background: var(--primary); height: 100%; transition: width 0.5s ease; border-radius: 5px; }
+
+        /* 網格 */
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 100px; }
+        .day-card { background: #fff; aspect-ratio: 1/1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; border: 1px solid #e2e8f0; position: relative; }
+        .day-card.done { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .day-num { font-weight: bold; font-size: 14px; }
+        .day-amt { font-size: 10px; opacity: 0.8; }
+
+        /* 彈窗 */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: #fff; width: 100%; max-width: 350px; border-radius: 20px; padding: 20px; }
+        input[type="text"], input[type="date"], input[type="password"], textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; margin-top: 8px; }
+        .btn-save { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 10px; margin-top: 15px; font-weight: bold; cursor: pointer; }
+        .success-flash { background: #dcfce7; color: #166534; padding: 10px; border-radius: 10px; font-size: 13px; text-align: center; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}{% for msg in messages %}<div class="success-flash">{{ msg }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
         <header class="top-nav">
             <div class="user-pill" onclick="openProfile()">👤 {{ user.username }} (x{{ user.multiplier }})</div>
             <a href="/logout" style="color:var(--danger); text-decoration:none; font-size:13px; font-weight:bold;">登出</a>
         </header>
 
         <div class="main-header">
-            <h1 style="margin:0; font-size: 24px;">{{ group.name }}</h1>
-            <i class="fa-solid fa-pen-to-square" style="color: var(--primary); cursor: pointer; font-size: 20px;" onclick="editGroupName()"></i>
+            <h2 style="margin:0;">{{ group.name }}</h2>
+            <i class="fa-solid fa-pen-to-square" style="color:var(--primary); cursor:pointer; font-size:16px;" onclick="editGroupName()"></i>
         </div>
-        
         <div class="invite-box" onclick="copyCode('{{ group.group_uuid }}')">
-            邀請碼：<strong style="color:var(--primary);">{{ group.group_uuid }}</strong> 
-            <span style="font-size:10px; color:#bbb;">(點擊複製)</span>
+            邀請碼: <span class="invite-code">{{ group.group_uuid }}</span> <i class="fa-regular fa-copy"></i>
         </div>
 
-        <section class="card">
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; text-align:center; font-size:12px;">
-                <div>已存<br><strong>${{ "{:,}".format(current) }}</strong></div>
-                <div>目標<br><strong>${{ "{:,}".format(target) }}</strong></div>
-                <div>進度<br><strong>{{ my_pct }}%</strong></div>
+        <div class="stats-card">
+            <div style="text-align: center;">
+                <span style="font-size: 13px; color: var(--gray);">目前累積</span>
+                <div style="font-size: 32px; font-weight: 800; color: var(--primary);">${{ "{:,}".format(current) }}</div>
             </div>
-            <div class="p-bar">
-                <div class="fill" style="width: {{ my_pct }}%;"></div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: {{ my_pct }}%;"></div>
             </div>
-        </section>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; color: var(--gray);">
+                <span>進度 {{ my_pct }}%</span>
+                <span>目標 ${{ "{:,}".format(target) }}</span>
+            </div>
+        </div>
 
-        <div class="money-grid">
-            {% for d in range(1, 366) %}
-            {% set r = saved_days.get(d) %}
-            <div class="day-box {{ 'done' if r else '' }}" onclick="handleBox(this)" data-day="{{ d }}" data-done="{{ '1' if r else '0' }}" data-rid="{{ r.id if r else '' }}" data-note="{{ r.note if r else '' }}" data-date="{{ r.date if r else '' }}" data-photo="{{ r.photo if r else '' }}">
-                <div style="font-size:9px; opacity:0.5;">Day {{ d }}</div>
-                <div style="font-size:14px; font-weight:bold;">${{ d * user.multiplier }}</div>
-                {% if r %}<i class="fa-solid fa-check" style="position:absolute; top:4px; right:4px; font-size:8px;"></i>{% endif %}
-            </div>
+        <div class="grid">
+            {% for i in range(1, 366) %}
+                {% set r = saved_days.get(i) %}
+                <div class="day-card {{ 'done' if r else '' }}" onclick="handleBox(this)" data-day="{{ i }}" data-done="{{ '1' if r else '0' }}" data-rid="{{ r.id if r else '' }}" data-note="{{ r.note if r else '' }}" data-date="{{ r.date if r else '' }}">
+                    <span class="day-num">{{ i }}</span>
+                    <span class="day-amt">${{ i * user.multiplier }}</span>
+                    {% if r %}<i class="fa-solid fa-circle-check" style="position:absolute; top:4px; right:4px; font-size:10px;"></i>{% endif %}
+                </div>
             {% endfor %}
         </div>
     </div>
 
-    <div id="p-box" class="modal"><div class="modal-body">
-        <h3 style="text-align:center; margin-top:0;">帳號設定</h3>
-        <form action="/update_profile" method="post" onsubmit="return confirm('變更倍率將清空紀錄，確定嗎？')">
-            <label style="font-size:12px; color:#888;">存錢倍率</label>
-            <select name="multiplier">
-                {% for i in [1, 2, 3, 5, 10] %}<option value="{{ i }}" {{ 'selected' if user.multiplier == i }}>{{ i }} 倍</option>{% endfor %}
-            </select>
-            <button type="submit" class="btn-go" style="background:#3498db;">儲存設定</button>
-        </form>
-        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+    <div id="p-box" class="modal"><div class="modal-content">
+        <h3 style="margin-top:0;">個人設定</h3>
         <form action="/update_password" method="post">
             <input type="password" name="old_password" placeholder="舊密碼" required>
             <input type="password" name="new_password" placeholder="新密碼" required>
-            <button type="submit" class="btn-go" style="background:var(--gray);">修改密碼</button>
+            <button type="submit" class="btn-save">修改密碼</button>
         </form>
-        <div class="danger-zone">
-            <button type="button" onclick="resetPlan()" style="color:var(--danger); cursor:pointer; background:none; border:none; text-decoration:underline; font-size:12px;">清空目前紀錄</button>
-            <form action="/delete_account" method="post" onsubmit="return confirm('⚠️ 確定註銷帳號？')" style="margin-top:10px;">
-                <button type="submit" class="btn-go" style="background:var(--danger); font-size:12px;">永久註銷帳號</button>
+        <div style="margin-top:20px; text-align:center;">
+            <button onclick="resetPlan()" style="color:var(--danger); background:none; border:none; text-decoration:underline; font-size:12px; cursor:pointer;">清空紀錄</button>
+            <form action="/delete_account" method="post" onsubmit="return confirm('確定要註銷帳號嗎？')" style="margin-top:10px;">
+                <button type="submit" style="background:var(--danger); color:#fff; border:none; padding:8px 15px; border-radius:8px; font-size:12px;">註銷帳號</button>
             </form>
         </div>
-        <button type="button" onclick="closeAll()" style="width:100%; border:none; background:none; color:#999; margin-top:15px;">關閉</button>
+        <button onclick="closeAll()" style="width:100%; margin-top:15px; border:none; background:none; color:var(--gray);">取消</button>
     </div></div>
 
-    <div id="m-box" class="modal"><div class="modal-body">
-        <h3 id="m-t" style="text-align:center;"></h3>
+    <div id="m-box" class="modal"><div class="modal-content">
+        <h3 id="m-t" style="margin-top:0;"></h3>
         <form id="m-f" method="post" enctype="multipart/form-data">
             <input type="hidden" name="day_number" id="m-d"><input type="hidden" name="record_id" id="m-ri">
             <input type="date" name="save_date" id="m-date">
-            <input type="text" name="note" id="m-n" placeholder="寫點什麼...">
-            <input type="file" name="photo_file" accept="image/*" style="margin-top:10px;">
-            <button type="submit" class="btn-go">儲儲</button>
+            <textarea name="note" id="m-n" placeholder="寫點心情..." rows="2"></textarea>
+            <button type="submit" class="btn-save">確認儲存</button>
         </form>
-        <button type="button" onclick="closeAll()" style="width:100%; border:none; background:none; color:#999; margin-top:10px;">取消</button>
+        <button onclick="closeAll()" style="width:100%; margin-top:10px; border:none; background:none; color:var(--gray);">取消</button>
     </div></div>
 
-    <form id="quickNameForm" action="/quick_update_name" method="post" style="display:none;"><input type="hidden" name="new_group_name" id="newGroupNameInput"></form>
+    <form id="qnf" action="/quick_update_name" method="post" style="display:none;"><input type="hidden" name="new_group_name" id="qni"></form>
 
     <script>
         function openProfile() { document.getElementById('p-box').style.display='flex'; }
         function closeAll() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
         function copyCode(t) { navigator.clipboard.writeText(t).then(() => alert('邀請碼已複製！')); }
-        function resetPlan() { if(confirm('確定清空所有紀錄？')) window.location.href='/reset_all_records'; }
+        function resetPlan() { if(confirm('確定要清空所有紀錄？')) window.location.href='/reset_all_records'; }
         function editGroupName() {
-            const res = prompt("請輸入新計畫名稱：");
-            if(res) { document.getElementById('newGroupNameInput').value=res; document.getElementById('quickNameForm').submit(); }
+            let n = prompt("請輸入新的計畫名稱:");
+            if(n) { document.getElementById('qni').value=n; document.getElementById('qnf').submit(); }
         }
         function handleBox(el) {
             const d = el.dataset; document.getElementById('m-box').style.display='flex';
@@ -124,6 +131,7 @@
                 document.getElementById('m-date').value="{{ today }}";
             }
         }
+        window.onclick = function(e) { if(e.target.className==='modal') closeAll(); }
     </script>
 </body>
 </html>
