@@ -19,7 +19,6 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 db = SQLAlchemy(app)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# --- 資料庫模型 ---
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     group_uuid = db.Column(db.String(8), unique=True, nullable=False)
@@ -45,7 +44,6 @@ class SavingRecord(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- 核心功能 ---
 @app.route('/')
 def index():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -65,11 +63,8 @@ def register():
         uname = request.form['username'].strip()
         if User.query.filter_by(username=uname).first():
             flash('此帳號已存在'); return redirect(url_for('register'))
-        
         pwd = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
         juuid = request.form.get('join_uuid', '').strip()
-        
-        # 修正自訂倍率邏輯
         m_type = request.form.get('multiplier')
         m = int(request.form.get('custom_multiplier') or 1) if m_type == 'custom' else int(m_type or 1)
         
@@ -78,12 +73,11 @@ def register():
             if not g: flash('邀請碼無效'); return redirect(url_for('register'))
             new_u = User(username=uname, password=pwd, group_uuid=juuid, multiplier=m)
         else:
-            # 【關鍵修正】優先讀取註冊表單填寫的計畫名稱
+            # 優先使用註冊表單輸入的計畫名稱
             g_name = request.form.get('group_name', '').strip() or f'{uname}的計畫'
             new_uuid = str(uuid.uuid4())[:8]
             db.session.add(Group(group_uuid=new_uuid, name=g_name))
             new_u = User(username=uname, password=pwd, group_uuid=new_uuid, multiplier=m)
-            
         db.session.add(new_u); db.session.commit()
         flash('註冊成功，請登入！'); return redirect(url_for('login'))
     return render_template('register.html')
@@ -93,8 +87,7 @@ def login():
     if request.method == 'POST':
         u = User.query.filter_by(username=request.form['username']).first()
         if u and check_password_hash(u.password, request.form['password']):
-            session['user_id'] = u.id
-            return redirect(url_for('index'))
+            session['user_id'] = u.id; return redirect(url_for('index'))
         flash('帳號或密碼錯誤')
     return render_template('login.html')
 
@@ -105,20 +98,7 @@ def save():
     fname = f"{uuid.uuid4().hex}.{f.filename.rsplit('.', 1)[1].lower()}" if f and f.filename != '' else None
     if fname: f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
     new_rec = SavingRecord(user_id=user.id, day_number=int(request.form['day_number']), amount=int(request.form['day_number']) * user.multiplier, note=request.form.get('note'), save_date=request.form.get('save_date'), photo=fname)
-    db.session.add(new_rec); db.session.commit()
-    return redirect(url_for('index'))
-
-@app.route('/update', methods=['POST'])
-def update():
-    record = SavingRecord.query.get(request.form.get('record_id'))
-    if record and record.user_id == session.get('user_id'):
-        record.note = request.form.get('note'); record.save_date = request.form.get('save_date')
-        f = request.files.get('photo_file')
-        if f and f.filename != '':
-            fname = f"{uuid.uuid4().hex}.{f.filename.rsplit('.', 1)[1].lower()}"
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname)); record.photo = fname
-        db.session.commit()
-    return redirect(url_for('index'))
+    db.session.add(new_rec); db.session.commit(); return redirect(url_for('index'))
 
 @app.route('/update_password', methods=['POST'])
 def update_password():
@@ -145,9 +125,7 @@ def delete_account():
 def quick_update_name():
     user = User.query.get(session.get('user_id'))
     g = Group.query.filter_by(group_uuid=user.group_uuid).first()
-    if g:
-        g.name = request.form.get('new_group_name')
-        db.session.commit()
+    if g: g.name = request.form.get('new_group_name'); db.session.commit()
     return redirect(url_for('index'))
 
 @app.route('/logout')
