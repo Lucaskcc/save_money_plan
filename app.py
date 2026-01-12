@@ -7,17 +7,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = "savings_365_v13_datepick"
 
-database_url = os.environ.get('DATABASE_URL')
-
-if database_url:
-    # 修正 Render 的網址開頭 (Render 給的是 postgres:// 但 SQLAlchemy 需要 postgresql://)
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-else:
-    # 如果沒有環境變數（例如在自己電腦測試時），才使用原本的 SQLite
-    db_path = os.path.join(os.path.dirname(__file__), 'savings.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+db_path = os.path.join(os.path.dirname(__file__), 'savings.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
