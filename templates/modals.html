@@ -1,0 +1,39 @@
+<div id="save-modal" class="modal">
+    <div class="modal-body">
+        <h3 id="modal-title" style="margin-top:0;">存錢確認</h3>
+        <p id="modal-amt" style="font-size:24px; font-weight:bold; color:var(--primary); margin:10px 0;"></p>
+        <form action="/save" method="post">
+            <input type="hidden" name="day_number" id="modal-day">
+            <label style="font-size:12px; color:#666;">備註內容 (可選)</label>
+            <textarea name="note" id="modal-note" rows="3" placeholder="寫點什麼吧..."></textarea>
+            <button type="submit" class="btn-green">確認儲存</button>
+        </form>
+        <button onclick="closeModals()" style="width:100%; border:none; background:none; color:#999; margin-top:15px; cursor:pointer;">取消返回</button>
+    </div>
+</div>
+
+<div id="p-box" class="modal">
+    <div class="modal-body">
+        <h3 style="margin-top:0; text-align:center;">帳號與目標設定</h3>
+        <form action="/update_profile" method="post" onsubmit="return confirm('變更目標會重置進度，確定嗎？')">
+            <label style="font-size:12px; font-weight:bold; color:#666;">存錢倍率</label>
+            <select name="multiplier" id="multi-select">
+                <option value="1">1 倍 (目標 $66,795)</option>
+                <option value="2">2 倍 (目標 $133,590)</option>
+                <option value="5">5 倍 (目標 $333,975)</option>
+            </select>
+            <button type="submit" class="btn-blue">更新目標</button>
+        </form>
+        <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+        <form action="/update_password" method="post">
+            <label style="font-size:12px; font-weight:bold; color:#666;">修改密碼</label>
+            <input type="password" name="old_password" placeholder="舊密碼" required>
+            <input type="password" name="new_password" placeholder="新密碼" required>
+            <button type="submit" class="btn-blue" style="background:var(--gray);">儲存並重新登入</button>
+        </form>
+        <form action="/delete_account" method="post" onsubmit="return confirm('警告：這將永久刪除帳號！')">
+            <button type="submit" class="btn-danger">永久註銷帳號</button>
+        </form>
+        <button onclick="closeModals()" style="width:100%; border:none; background:none; color:#999; margin-top:20px; cursor:pointer;">關閉設定</button>
+    </div>
+</div>

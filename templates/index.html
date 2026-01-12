@@ -1,100 +1,434 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>365存錢計畫</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
-        :root { --primary: #2ecc71; --bg: #f8fafc; }
-        body { background: var(--bg); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 50px; }
-        .container { max-width: 500px; margin: 0 auto; padding: 20px; }
-        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .user-tag { background: #fff; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* --- 變數定義：清新質感配色 --- */
+        :root {
+            --primary: #00b894;       /* 薄荷綠 */
+            --primary-dark: #00a884;
+            --accent: #0984e3;        /* 點綴藍 */
+            --bg: #f5f7fa;            /* 柔和灰白背景 */
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+            --danger: #ff7675;
+            --shadow: 0 10px 20px rgba(0,0,0,0.05);
+            --radius: 20px;
+        }
+
+        body { 
+            margin: 0; 
+            background: var(--bg); 
+            font-family: 'Noto Sans TC', -apple-system, sans-serif; 
+            color: var(--text-main); 
+            -webkit-tap-highlight-color: transparent;
+        }
         
-        .header-box { text-align: center; margin-bottom: 25px; }
-        .plan-title { font-size: 24px; font-weight: 800; margin: 0; }
-        .invite-code { color: var(--primary); font-size: 12px; margin-top: 5px; display: block; }
-
-        /* 進度條卡片 */
-        .card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; margin-bottom: 15px; }
-        .stat-item span { display: block; font-size: 11px; color: #94a3b8; }
-        .stat-item b { font-size: 15px; }
+        .container { max-width: 480px; margin: 0 auto; padding: 25px 20px 80px 20px; }
         
-        .progress-bg { background: #f1f5f9; height: 10px; border-radius: 5px; overflow: hidden; }
-        .progress-fill { background: var(--primary); height: 100%; transition: width 0.6s ease; }
+        /* --- 頂部導航 --- */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        
+        .user-pill { 
+            background: var(--card-bg); 
+            padding: 8px 16px; 
+            border-radius: 30px; 
+            font-weight: 700; 
+            font-size: 14px;
+            color: var(--text-main);
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: var(--shadow); 
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .user-pill:active { transform: scale(0.96); }
+        .user-pill i { color: var(--accent); font-size: 16px; }
 
-        /* 存錢格子樣式 */
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .day-box { background: #fff; border: 1.5px solid #f1f5f9; border-radius: 16px; padding: 18px 5px; text-align: center; cursor: pointer; position: relative; }
-        .day-box.done { background: #ecfdf5; border-color: var(--primary); }
-        .day-box .label { font-size: 10px; color: #94a3b8; display: block; }
-        .day-box .amount { font-size: 16px; font-weight: 800; display: block; }
-        .day-box.done .amount { color: var(--primary); }
-        .check { position: absolute; top: 5px; right: 5px; color: var(--primary); font-size: 10px; }
+        .logout-btn { 
+            color: var(--text-sub); 
+            text-decoration: none; 
+            font-size: 14px; 
+            font-weight: 500; 
+            transition: 0.2s;
+        }
+        .logout-btn:hover { color: var(--danger); }
 
-        /* 彈窗 */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 99; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 20px; width: 280px; }
-        .btn-confirm { background: var(--primary); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        /* --- 標題區塊 --- */
+        .title-section { text-align: center; margin-bottom: 25px; }
+        .group-name-row { 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; font-weight: 900; gap: 10px; color: var(--text-main);
+            letter-spacing: 0.5px;
+        }
+        .edit-icon-btn { 
+            width: 28px; height: 28px; background: #ececec; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 12px; color: #888; cursor: pointer; transition: 0.2s; 
+        }
+        .edit-icon-btn:active { transform: scale(0.9); }
+
+        .invite-pill { 
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(9, 132, 227, 0.1); 
+            color: var(--accent); 
+            padding: 6px 16px; border-radius: 20px; 
+            font-size: 13px; margin-top: 12px; 
+            cursor: pointer; font-weight: 700; 
+            transition: 0.2s;
+        }
+        .invite-pill:active { background: rgba(9, 132, 227, 0.2); }
+
+        /* --- 通用卡片樣式 --- */
+        .card { 
+            background: var(--card-bg); 
+            border-radius: var(--radius); 
+            padding: 25px; 
+            margin-bottom: 20px; 
+            box-shadow: var(--shadow); 
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        /* 統計數據 */
+        .stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; margin-bottom: 20px; }
+        .stat-item span { font-size: 12px; color: var(--text-sub); display: block; margin-bottom: 6px; font-weight: 500; }
+        .stat-item strong { font-size: 18px; color: var(--text-main); font-family: 'Roboto', sans-serif; }
+        
+        /* --- 進度條 --- */
+        .progress-container { position: relative; padding: 0 5px; }
+        .progress-bg { 
+            background: #edf2f7; height: 14px; border-radius: 10px; overflow: hidden; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .progress-fill { 
+            background: linear-gradient(135deg, #00b894, #0984e3);
+            height: 100%; width: 0%; border-radius: 10px;
+            transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+            position: relative; overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 184, 148, 0.3);
+        }
+        .progress-fill::after {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+            background-size: 16px 16px; animation: moveStripes 2s linear infinite;
+        }
+        @keyframes moveStripes { 0% { background-position: 0 0; } 100% { background-position: 16px 0; } }
+
+        /* --- 格子系統 (已修改：一行五個 + Hover 效果) --- */
+        .grid { 
+            display: grid; 
+            /* 強制設定為 5 個欄位 */
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 10px; 
+        }
+        
+        .day-box { 
+            background: #fff; 
+            border-radius: 16px; 
+            aspect-ratio: 1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            /* 邊框預設透明，避免hover時抖動 */
+            border: 1px solid transparent; 
+            position: relative;
+            /* 加入過渡動畫，讓 hover 效果平滑 */
+            transition: all 0.2s ease;
+        }
+        
+        /* === 這裡是您要求的 hover 效果 === */
+        .day-box:hover {
+            transform: translateY(-4px); /* 向上浮起 */
+            box-shadow: 0 8px 20px rgba(0, 184, 148, 0.15); /* 加深陰影 */
+            border-color: var(--primary); /* 顯示綠色邊框 */
+            background-color: #fafffb; /* 極淡的綠色背景 */
+            z-index: 10;
+        }
+
+        .day-box:active { transform: scale(0.95) translateY(0); } /* 點擊時縮小 */
+        
+        /* 調整文字大小 */
+        .day-box div:first-child { font-size: 10px; color: #b2bec3; margin-bottom: 2px; } 
+        .day-box div:last-child { font-size: 13px; font-weight: 700; color: var(--text-main); font-family: 'Roboto', sans-serif;} 
+
+        /* 完成狀態 */
+        .day-box.done { 
+            background: var(--primary); 
+            box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+        }
+        /* 完成狀態被 hover 時的樣式 */
+        .day-box.done:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-4px);
+        }
+
+        .day-box.done div:first-child { color: rgba(255,255,255,0.8); }
+        .day-box.done div:last-child { color: #fff; }
+        
+        .note-dot { 
+            position: absolute; top: 6px; right: 6px; 
+            width: 5px; height: 5px; background: var(--danger); 
+            border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .day-box.done .note-dot { background: #fff; }
+
+        /* --- 排行榜 --- */
+        .leader-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 0; border-bottom: 1px dashed #e1e1e1; 
+        }
+        .leader-item:last-child { border-bottom: none; }
+        .leader-name { font-weight: 700; font-size: 15px; color: var(--text-main); }
+        .leader-sub { font-size: 12px; color: #aaa; margin-top: 4px; }
+        .leader-pct { font-weight: 900; color: var(--primary); font-size: 18px; }
+
+        /* --- 彈窗 Modal --- */
+        .modal { 
+            display: none; position: fixed; inset: 0; 
+            background: rgba(45, 52, 54, 0.6); 
+            backdrop-filter: blur(5px);
+            align-items: center; justify-content: center; 
+            z-index: 1000; padding: 20px; 
+        }
+        .modal-content { 
+            background: #fff; width: 100%; max-width: 340px; 
+            border-radius: 24px; padding: 30px; box-sizing: border-box; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .modal-content h3 { margin: 0 0 20px 0; font-size: 20px; text-align: center; color: var(--text-main); }
+        
+        input, select, textarea { 
+            width: 100%; padding: 14px; margin: 8px 0 15px 0; 
+            border: 2px solid #f1f2f6; border-radius: 14px; 
+            font-size: 16px; background: #fdfdfd; box-sizing: border-box; 
+            transition: 0.2s; outline: none; font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: #fff; }
+        
+        textarea { resize: none; overflow-y: hidden; min-height: 80px; }
+
+        .btn-main { width: 100%; padding: 15px; border: none; border-radius: 14px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 5px; }
+        .btn-main:active { transform: scale(0.98); }
+        
+        .btn-blue { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(9, 132, 227, 0.3); }
+        .btn-green { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3); }
+        .btn-text { background: transparent; color: #999; font-size: 14px; margin-top: 10px; }
+        
+        #m-amt { 
+            text-align: center; font-size: 36px; font-weight: 900; 
+            color: var(--primary); margin: 5px 0 20px 0; letter-spacing: -1px; 
+        }
+        
+        .form-label { font-size: 13px; color: var(--text-sub); font-weight: 700; margin-left: 4px; margin-bottom: 2px; }
+        input[type="date"] { color: #666; font-weight: 500; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="top-nav">
-            <div class="user-tag">👤 {{ user.username }} (x{{ user.multiplier }})</div>
-            <a href="/logout" style="color:#ef4444; text-decoration:none; font-size:13px; font-weight:bold;">登出</a>
+        <div class="header">
+            <div class="user-pill" onclick="openModal('profile-modal')">
+                <i class="fa-solid fa-user-astronaut"></i> 
+                <span id="user-name-display">...</span>
+            </div>
+            <a href="/logout" class="logout-btn">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> 登出
+            </a>
         </div>
 
-        <div class="header-box">
-            <h1 class="plan-title">{{ group.name }}</h1>
-            <span class="invite-code">邀請碼：{{ group.group_uuid }}</span>
+        <div class="title-section">
+            <div class="group-name-row">
+                <span id="group-display">...</span>
+                <div class="edit-icon-btn" onclick="openModal('edit-group-modal')">
+                    <i class="fa-solid fa-pen"></i>
+                </div>
+            </div>
+            <div class="invite-pill" onclick="copyCode()">
+                <i class="fa-regular fa-copy"></i> <span id="invite-code">...</span>
+            </div>
         </div>
 
         <div class="card">
             <div class="stat-row">
-                <div class="stat-item"><span>已存</span><b>${{ "{:,}".format(current) }}</b></div>
-                <div class="stat-item"><span>目標</span><b>${{ "{:,}".format(target) }}</b></div>
-                <div class="stat-item"><span>進度</span><b>{{ my_pct }}%</b></div>
+                <div class="stat-item"><span>已存金額</span><strong id="cur-val">$0</strong></div>
+                <div class="stat-item"><span>目標金額</span><strong id="tar-val">$0</strong></div>
+                <div class="stat-item"><span>達成率</span><strong id="pct-val" style="color:var(--primary);">0%</strong></div>
             </div>
-            <div class="progress-bg">
-                {# 使用變數確保 VS Code 不會報錯 #}
-                <div class="progress-fill" style="width: {{ my_pct or 0 }}%;"></div>
+            <div class="progress-container">
+                <div class="progress-bg">
+                    <div id="main-fill" class="progress-fill"></div>
+                </div>
             </div>
         </div>
 
-        <div class="grid">
-            {% for i in range(1, 366) %}
-                {% set is_done = i in saved_days %}
-                <div class="day-box {{ 'done' if is_done }}" 
-                     onclick="openSave({{ i }}, {{ 1 if is_done else 0 }})">
-                    {% if is_done %}<i class="fa-solid fa-check check"></i>{% endif %}
-                    <span class="label">Day {{ i }}</span>
-                    <span class="amount">${{ i * user.multiplier }}</span>
-                </div>
-            {% endfor %}
+        <div class="card">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                <i class="fa-solid fa-trophy" style="color:#fdcb6e;"></i>
+                <strong style="font-size: 18px;">夥伴排行榜</strong>
+            </div>
+            <div id="leaderboard"></div>
+        </div>
+
+        <div id="grid-list" class="grid"></div>
+    </div>
+
+    <div id="edit-group-modal" class="modal">
+        <div class="modal-content">
+            <h3>修改計畫名稱</h3>
+            <form action="/update_group_name" method="post">
+                <input type="text" name="group_name" id="input-gname" required placeholder="輸入新的名稱">
+                <button type="submit" class="btn-main btn-green">儲存名稱</button>
+            </form>
+            <button class="btn-main btn-text" onclick="closeAll()">關閉</button>
         </div>
     </div>
 
-    <div id="m-box" class="modal"><div class="modal-content">
-        <h3 id="m-t" style="margin:0 0 15px 0; text-align:center;"></h3>
-        <form action="/save" method="post">
-            <input type="hidden" name="day_number" id="m-d">
-            <input type="date" name="save_date" value="{{ today }}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:8px; box-sizing: border-box;">
-            <button type="submit" class="btn-confirm">確認存入</button>
-        </form>
-        <button onclick="closeAll()" style="width:100%; background:none; border:none; color:#94a3b8; margin-top:10px;">取消</button>
-    </div></div>
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <h3>帳號設定</h3>
+            <label class="form-label">切換難度 (存錢倍率)</label>
+            <form action="/update_multiplier" method="post" onsubmit="return confirm('更改倍率會清空進度，確定嗎？')">
+                <select name="multiplier" id="set-mult">
+                    <option value="1">1倍 (目標 $66,795)</option>
+                    <option value="2">2倍 (目標 $133,590)</option>
+                    <option value="5">5倍 (目標 $333,975)</option>
+                    <option value="10">10倍 (目標 $667,950)</option>
+                    <option value="20">20倍 (目標 $1,335,900)</option>
+                    <option value="50">50倍 (目標 $3,339,750)</option>
+                </select>
+                <button type="submit" class="btn-main btn-blue">確認變更</button>
+            </form>
+            
+            <div style="height: 1px; background: #eee; margin: 20px 0;"></div>
+            
+            <form action="/change_password" method="post">
+                <input type="password" name="old_p" placeholder="舊密碼" required>
+                <input type="password" name="new_p" placeholder="新密碼" required>
+                <button type="submit" class="btn-main btn-green" style="background:var(--text-sub);">修改密碼</button>
+            </form>
+            
+            <form action="/delete_account" method="post" onsubmit="return confirm('確定註銷？')" style="margin-top:20px;">
+                <button type="submit" style="background:none; border:none; color:var(--danger); font-size:14px; cursor:pointer; width:100%;">
+                    <i class="fa-solid fa-trash"></i> 註銷我的帳號
+                </button>
+            </form>
+            
+            <button class="btn-main btn-text" onclick="closeAll()">關閉</button>
+        </div>
+    </div>
+
+    <div id="save-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="m-title">存錢確認</h3>
+            <div id="m-amt"></div>
+            
+            <form action="/save" method="post">
+                <input type="hidden" name="day_number" id="m-day">
+                
+                <div class="form-label">存入日期</div>
+                <input type="date" name="saved_date" id="m-date-input" required>
+
+                <div class="form-label">備註 (選填)</div>
+                <textarea name="note" id="m-note" placeholder="寫下今天的心情或是存錢理由..." rows="1" oninput="autoResize(this)"></textarea>
+                
+                <button type="submit" class="btn-main btn-green">確認存入</button>
+            </form>
+            
+            <form action="/delete_record" method="post" id="del-form" style="display:none; margin-top:10px;">
+                <input type="hidden" name="day_number" id="d-day">
+                <button type="submit" class="btn-main btn-text" style="color: var(--danger);">刪除這筆紀錄</button>
+            </form>
+            <button class="btn-main btn-text" onclick="closeAll()">取消</button>
+        </div>
+    </div>
 
     <script>
-        function openSave(day, done) {
-            if(done === 1) return;
-            document.getElementById('m-box').style.display='flex';
-            document.getElementById('m-d').value = day;
-            document.getElementById('m-t').innerText = 'Day ' + day + ' 存錢';
+        function autoResize(el) {
+            el.style.height = 'auto'; 
+            el.style.height = (el.scrollHeight) + 'px'; 
         }
-        function closeAll() { document.getElementById('m-box').style.display='none'; }
+
+        async function loadData() {
+            const res = await fetch('/api/data');
+            const data = await res.json();
+            
+            document.getElementById('user-name-display').innerText = data.user_name;
+            document.getElementById('group-display').innerText = data.group_name;
+            document.getElementById('input-gname').value = data.group_name;
+            document.getElementById('invite-code').innerText = data.group_uuid;
+            document.getElementById('cur-val').innerText = `$${data.current.toLocaleString()}`;
+            document.getElementById('tar-val').innerText = `$${data.target.toLocaleString()}`;
+            
+            const multSelect = document.getElementById('set-mult');
+            if (multSelect) multSelect.value = data.multiplier;
+
+            const pct = data.target > 0 ? (data.current/data.target*100).toFixed(1) : "0.0";
+            document.getElementById('pct-val').innerText = `${pct}%`;
+            document.getElementById('main-fill').style.width = pct + '%';
+
+            const lb = document.getElementById('leaderboard');
+            lb.innerHTML = data.leaderboard.map(m => `
+                <div class="leader-item">
+                    <div>
+                        <div class="leader-name">${m.name} ${m.is_me?'<i class="fa-solid fa-star" style="color:#fdcb6e; font-size:12px;"></i>':''}</div>
+                        <div class="leader-sub">${m.multiplier}倍挑戰 (目標 $${m.target.toLocaleString()})</div>
+                    </div>
+                    <div class="leader-pct">${m.pct}%</div>
+                </div>
+            `).join('');
+
+            const gridBox = document.getElementById('grid-list');
+            gridBox.innerHTML = '';
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            data.grid.forEach(item => {
+                const box = document.createElement('div');
+                box.className = 'day-box' + (item.s === 1 ? ' done' : '');
+                
+                box.innerHTML = `
+                    <div>Day ${item.d}</div>
+                    <div>$${item.a.toLocaleString()}</div>
+                `;
+                
+                if(item.n) box.innerHTML += `<div class="note-dot"></div>`;
+                
+                box.onclick = () => {
+                    document.getElementById('m-day').value = item.d;
+                    document.getElementById('d-day').value = item.d;
+                    document.getElementById('m-amt').innerText = `$${item.a.toLocaleString()}`;
+                    
+                    const noteBox = document.getElementById('m-note');
+                    noteBox.value = item.n || "";
+                    setTimeout(() => autoResize(noteBox), 0);
+                    
+                    const dateInput = document.getElementById('m-date-input');
+                    if (item.dt) {
+                        dateInput.value = item.dt.replace(/\//g, '-');
+                    } else {
+                        dateInput.value = todayStr;
+                    }
+
+                    document.getElementById('m-title').innerText = item.s ? "編輯紀錄" : "存錢確認";
+                    document.getElementById('del-form').style.display = item.s ? 'block' : 'none';
+                    openModal('save-modal');
+                };
+                gridBox.appendChild(box);
+            });
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeAll() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
+        function copyCode() { navigator.clipboard.writeText(document.getElementById('invite-code').innerText); alert("邀請碼已複製"); }
+        
+        loadData();
     </script>
 </body>
 </html>
