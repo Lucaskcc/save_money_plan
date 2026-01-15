@@ -118,10 +118,9 @@
         }
         @keyframes moveStripes { 0% { background-position: 0 0; } 100% { background-position: 16px 0; } }
 
-        /* --- 格子系統 (已修改：一行五個 + Hover 效果) --- */
+        /* --- 格子系統 (已修改：一行五個 + Hover 效果 + 修正跑版) --- */
         .grid { 
             display: grid; 
-            /* 強制設定為 5 個欄位 */
             grid-template-columns: repeat(5, 1fr); 
             gap: 10px; 
         }
@@ -129,47 +128,48 @@
         .day-box { 
             background: #fff; 
             border-radius: 16px; 
+            
+            /* 1. 保持正方形 */
             aspect-ratio: 1;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            
+            /* 2. 排版控制 */
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            
+            /* 3. 避免內容貼邊導致跑版 */
+            gap: 2px;
+            padding: 2px;
+
             cursor: pointer; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-            /* 邊框預設透明，避免hover時抖動 */
             border: 1px solid transparent; 
             position: relative;
-            /* 加入過渡動畫，讓 hover 效果平滑 */
             transition: all 0.2s ease;
         }
         
-        /* === 這裡是您要求的 hover 效果 === */
         .day-box:hover {
-            transform: translateY(-4px); /* 向上浮起 */
-            box-shadow: 0 8px 20px rgba(0, 184, 148, 0.15); /* 加深陰影 */
-            border-color: var(--primary); /* 顯示綠色邊框 */
-            background-color: #fafffb; /* 極淡的綠色背景 */
+            transform: translateY(-4px); 
+            box-shadow: 0 8px 20px rgba(0, 184, 148, 0.15); 
+            border-color: var(--primary); 
+            background-color: #fafffb; 
             z-index: 10;
         }
 
-        .day-box:active { transform: scale(0.95) translateY(0); } /* 點擊時縮小 */
-        
-        /* 調整文字大小 */
-        .day-box div:first-child { font-size: 10px; color: #b2bec3; margin-bottom: 2px; } 
-        .day-box div:last-child { font-size: 13px; font-weight: 700; color: var(--text-main); font-family: 'Roboto', sans-serif;} 
+        .day-box:active { transform: scale(0.95) translateY(0); }
 
         /* 完成狀態 */
         .day-box.done { 
             background: var(--primary); 
             box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
         }
-        /* 完成狀態被 hover 時的樣式 */
         .day-box.done:hover {
             background: var(--primary-dark);
             border-color: var(--primary-dark);
             transform: translateY(-4px);
         }
 
-        .day-box.done div:first-child { color: rgba(255,255,255,0.8); }
-        .day-box.done div:last-child { color: #fff; }
-        
         .note-dot { 
             position: absolute; top: 6px; right: 6px; 
             width: 5px; height: 5px; background: var(--danger); 
@@ -205,17 +205,45 @@
         
         .modal-content h3 { margin: 0 0 20px 0; font-size: 20px; text-align: center; color: var(--text-main); }
         
-        input, select, textarea { 
-            width: 100%; padding: 14px; margin: 8px 0 15px 0; 
-            border: 2px solid #f1f2f6; border-radius: 14px; 
-            font-size: 16px; background: #fdfdfd; box-sizing: border-box; 
-            transition: 0.2s; outline: none; font-family: inherit;
+        /* --- 表單元件全域設定 (修正按鈕與日期大小不一的問題) --- */
+        input, select, textarea, .btn-main { 
+            box-sizing: border-box; /* 關鍵：讓 padding 包含在寬度內 */
+            width: 100%; 
+            border-radius: 14px; 
+            font-size: 16px; 
+            font-family: inherit;
         }
+
+        input, select, textarea {
+            padding: 14px; /* 與按鈕一致 */
+            margin: 8px 0 15px 0;
+            border: 2px solid #f1f2f6;
+            background: #fdfdfd;
+            transition: 0.2s; 
+            outline: none; 
+        }
+
+        /* 特別修正日期選單樣式 */
+        input[type="date"] {
+            appearance: none;           /* 移除 iOS 預設圓角樣式 */
+            -webkit-appearance: none;
+            min-height: 52px;           /* 強制高度 */
+            color: #444;
+            font-weight: 500;
+        }
+
         input:focus, select:focus, textarea:focus { border-color: var(--primary); background: #fff; }
         
         textarea { resize: none; overflow-y: hidden; min-height: 80px; }
 
-        .btn-main { width: 100%; padding: 15px; border: none; border-radius: 14px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 5px; }
+        .btn-main { 
+            padding: 14px; /* 與輸入框一致 */
+            border: none; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            margin-top: 5px; 
+        }
         .btn-main:active { transform: scale(0.98); }
         
         .btn-blue { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(9, 132, 227, 0.3); }
@@ -228,7 +256,6 @@
         }
         
         .form-label { font-size: 13px; color: var(--text-sub); font-weight: 700; margin-left: 4px; margin-bottom: 2px; }
-        input[type="date"] { color: #666; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -393,9 +420,10 @@
                 const box = document.createElement('div');
                 box.className = 'day-box' + (item.s === 1 ? ' done' : '');
                 
+                // --- 調整了這裡的樣式，字體變小並加入行高，防止跑版 ---
                 box.innerHTML = `
-                    <div>Day ${item.d}</div>
-                    <div>$${item.a.toLocaleString()}</div>
+                    <div style="font-size:10px; opacity:0.5; line-height:1.2;">Day ${item.d}</div>
+                    <div style="font-size:13px; font-weight:700; line-height:1.2;">$${item.a.toLocaleString()}</div>
                 `;
                 
                 if(item.n) box.innerHTML += `<div class="note-dot"></div>`;
